@@ -51,6 +51,33 @@ assert 'it connects and retrieves credentials' do
   assert_true c.expired?
 end
 
+assert 'it raises any returned error message' do
+  session = nil
+  reqs = []
+  reqs << HTTP::Session::Response.new(200, 'OK', headers: {
+    'content-type' => 'application/json'
+  }, body:
+    '{"message":"Invalid thing name passed"}'
+  )
+  outstream = HTTP::Session::OutputStream.new
+  HTTP::Session.on_new = Proc.new do |sess|
+    session = sess
+    session.stream = HTTP::Session::Stream.new { reqs.shift }
+    session.connection = outstream
+  end
+
+  # finally, actually test stuff
+  assert_raise_with_message(AWS::IoT::CredentialProvider::Error, "Invalid thing name passed") do
+    c = AWS::IoT::CredentialProvider.new domain_name: '127.0.0.1',
+                                         role_alias: 'role',
+                                         thing_name: '12341234',
+                                         client_certificate: "cert",
+                                         client_private_key: "privkey",
+                                         ca_chain: "chain"
+    c.refresh!
+  end
+end
+
 assert 'it is expired if credentials are nil' do
   c = AWS::IoT::CredentialProvider.new domain_name: '127.0.0.1',
                                        role_alias: 'role',

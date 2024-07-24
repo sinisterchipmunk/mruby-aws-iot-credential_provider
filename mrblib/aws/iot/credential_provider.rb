@@ -28,7 +28,8 @@ module AWS
         raise MalformedResponse, "HTTP status #{response.status_code}" unless response.status_code = 200
         raise MalformedResponse, "Wrong content type" unless response['Content-type'] == 'application/json'
         parsed = JSON.parse(response.body.read)
-        raise MalformedResponse, "Unexpected JSON structure" unless parsed['credentials']
+        raise Error, parsed['message'] if parsed['message']
+        raise MalformedResponse, "Unexpected JSON structure: #{parsed.inspect}" unless parsed['credentials']
         result = {
           access_key_id: parsed['credentials']['accessKeyId'],
           secret_access_key: parsed['credentials']['secretAccessKey'],
